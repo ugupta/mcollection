@@ -1,0 +1,106 @@
+{
+    "userId": 1,
+    "transactionDate": [2011,11,7],
+    "paymentType": 1,
+    "receiptId": "",
+    "receiptDate": null,
+    "saveCollectionSheetCustomers": [{
+            "customerId": 1,
+            "parentCustomerId": null,
+            "saveCollectionSheetCustomerSavings": [
+                {
+                    "accountId": 72,
+                    "currencyId": 2,
+                    "totalDeposit": 0,
+                    "totalWithdrawal": 0
+                }
+            ],
+            "saveCollectionSheetCustomerIndividualSavings": null,
+            "saveCollectionSheetCustomerLoans": null,
+            "saveCollectionSheetCustomerAccount": {
+                "accountId": 1,
+                "currencyId": 2,
+                "totalCustomerAccountCollectionFee": 800
+            },
+            "attendanceId": null
+        },
+        {
+            "customerId": 2,
+            "parentCustomerId": 1,
+            "saveCollectionSheetCustomerSavings": [
+                {
+                    "accountId": 73,
+                    "currencyId": 2,
+                    "totalDeposit": 0,
+                    "totalWithdrawal": 0
+                }
+            ],
+            "saveCollectionSheetCustomerIndividualSavings": null,
+            "saveCollectionSheetCustomerLoans": [
+                {
+                    "accountId": 71,
+                    "currencyId": 2,
+                    "totalDisbursement": 0,
+                    "totalLoanPayment": 8494
+                }
+            ],
+            "saveCollectionSheetCustomerAccount": {
+                "accountId": 2,
+                "currencyId": 2,
+                "totalCustomerAccountCollectionFee": 800
+            },
+            "attendanceId": null
+        },
+        {
+            "customerId": 3,
+            "parentCustomerId": 2,
+            "saveCollectionSheetCustomerSavings": [
+                {
+                    "accountId": 7,
+                    "currencyId": 2,
+                    "totalDeposit": 805,
+                    "totalWithdrawal": 0
+                },
+                {
+                    "accountId": 6,
+                    "currencyId": 2,
+                    "totalDeposit": 100,
+                    "totalWithdrawal": 0
+                }
+            ],
+            "saveCollectionSheetCustomerIndividualSavings": [
+                {
+                    "accountId": 72,
+                    "currencyId": 2,
+                    "totalDeposit": 240,
+                    "totalWithdrawal": 0
+                },
+                {
+                    "accountId": 73,
+                    "currencyId": 2,
+                    "totalDeposit": 160,
+                    "totalWithdrawal": 0
+                }
+            ],
+            "saveCollectionSheetCustomerLoans": [
+                {
+                    "accountId": 4,
+                    "currencyId": 2,
+                    "totalDisbursement": 0,
+                    "totalLoanPayment": 80
+                },
+                {
+                    "accountId": 5,
+                    "currencyId": 2,
+                    "totalDisbursement": 0,
+                    "totalLoanPayment": 824
+                }
+            ],
+            "saveCollectionSheetCustomerAccount": {
+                "accountId": 3,
+                "currencyId": 2,
+                "totalCustomerAccountCollectionFee": 800
+            },
+            "attendanceId": 1
+        }
+]}

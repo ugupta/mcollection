@@ -1,0 +1,87 @@
+#clients,
+#groups,
+#center {
+    background: #F4F3FF;
+    padding: 10px;
+    border: solid 1px;
+    width: 800px;
+}
+
+.section span {
+    background: #703C00;
+    padding: 1px;
+    color: white;
+    font-weight: bold;
+}
+
+div.section {
+    border: solid 1px;
+    margin: 10px;
+    padding: 10px;
+}
+
+.section div {
+    background: #E1E6E7;
+}
+
+div.account {
+	margin-left: 20px;
+}
+
+.account span,
+.account input {
+	background: transparent;
+	display: inline-block;
+	color: black;
+	padding-left: 10px;
+	padding-right: 10px;
+	margin-left: 5px;
+	border-left: 1px solid;
+	min-width: 100px;
+}
+
+.account input {
+    background: white;
+    width: 50px;
+    min-width: 50px;
+    text-align: right;
+}
+
+hr {
+   margin : 5px;
+}
+
+#errors {
+    color: red;
+    
+}
+
+.localStorage span {
+    background: green;
+    border: 1px solid #000000;
+	white-space: nowrap;
+	width: 300px;
+	display: inline-block;
+	padding: 2px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.localStorage span.val {
+   background: yellow;
+   cursor: pointer;
+}
+
+span.smallText {
+	white-space: inherit;
+	width: 100%;
+}
+
+span.due {
+    color: red;
+    font-weight: normal;
+    font-size: small;
+    border: 0px;
+    margin: 0px;
+    padding: 0px
+}
