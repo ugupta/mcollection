@@ -10,7 +10,10 @@ var date;
 var CENTER_LEVEL = 3;
 var GROUP_LEVEL = 2;
 var CLIENT_LEVEL = 1;
-var xhr
+var debug = true;
+var connectionStatus;
+var statusIntervalReference;
+var statusInterval = 1000;
 
 function reset() {
     window.localStorage.clear();
@@ -18,19 +21,67 @@ function reset() {
 }
 
 function init() {
-    chrome.tts.speak('Welcome');
     placeHolder = $("#placeholder");
-    currentCenter = window.localStorage.getItem('currentCenter');
+    currentCenter = getItem('currentCenter');
     if (currentCenter == null) {
-        createLoginDialog();
+        placeHolder.html("Welcome to Mifos offline collectionsheet - Google Chrome Extension");
+        createBranchList();
     } else {
         createBranchList();
         loadCollectionSheetUI();
     }
+    
+    statusIntervalReference = setInterval("startStatusTrack()", statusInterval);
+}
+
+function startStatusTrack() {
+    var htmlStr = "No Connection";
+    var ele = $("#status");
+    ele.attr('class','redStatus');
+    createLoginDialog();
+    loginAjax(loginSuccess);
+    if(connectionStatus == 'Success') {
+       htmlStr = "Ready to Sync/Submit";
+       ele.attr('class','greenStatus');
+       if(personnel == null) {
+           afterLoginSuccess();
+       }
+    } else if(connectionStatus == 'session expired') {
+       htmlStr = "Login please";
+       ele.attr('class','yellowStatus');
+    } 
+
+    $("#status").html(htmlStr)
 }
 
 function createLoginDialog() {
-    placeHolder.html("<div id='loginDialog'>" + "<input type='text' id='url' name='url' size=40 value='http://localhost:8083/mifos/'></input>" + "<input type='text' id='username' name='url' placeholder='username' value='loanofficer'></input>" + "<input type='password' id='password' name='url' placeholder='password' value='testmifos' ></input>" + "<input type='button' id='loginButton' value='login'></input>" + "</div>");
+    var username = getItem('username');
+    var password = getItem('password');
+    var baseURL = getItem('baseURL');
+    if(username == undefined) {
+       username = "loanofficer";
+       setItem('username', username);
+    }
+    if(password == undefined) {
+        password = "testmifos";
+        setItem('password', password);
+    }
+    if(baseURL == undefined) {
+        baseURL = "http://localhost:8083/mifos/";
+        setItem('baseURL', baseURL);
+    }
+    var htmlStr = "";
+    if(connectionStatus == undefined) {
+        htmlStr += "<input type='text' id='url' name='url' size=40 value='"+baseURL+"'></input>\n"
+                 + "<input type='button' id='loginButton' value='Submit'></input>\n";
+    }
+    if(connectionStatus == 'session expired') {
+        htmlStr += "<input type='text' id='username' name='url' placeholder='username' value='"+username+"'></input>\n" 
+                 + "<input type='password' id='password' name='url' placeholder='password' value='"+password+"' ></input>\n"
+                 + "<input type='button' id='loginButton' value='Submit'></input>\n";
+    }
+        
+    $("#loginDialog").html(htmlStr);
     $("#loginButton").click(getLoginParameters);
 }
 
@@ -38,43 +89,49 @@ function getLoginParameters() {
     var username = $("#username").val();
     var password = $("#password").val();
     var baseURL = $("#url").val();
-    window.localStorage.setItem('username', username);
-    window.localStorage.setItem('password', password);
-    window.localStorage.setItem('baseURL', baseURL);
-    loginAjax(loginSuccess);
+    $("#loginDialog").html("<img src='loader.gif' />");
+    setItem('username', username);
+    setItem('password', password);
+    setItem('baseURL', baseURL);
 }
 
 function loginAjax(callback) {
-    var username = window.localStorage.getItem('username');
-    var password = window.localStorage.getItem('password');
-    var baseURL = window.localStorage.getItem('baseURL');
-    xhr = new XMLHttpRequest();
-    xhr.onreadystatechange = callback;
+    var username = getItem('username');
+    var password = getItem('password');
+    var baseURL = getItem('baseURL');
+    var xhr = new XMLHttpRequest();
+    xhr.xhrTimeout = setTimeout(function(){ xhrAbort(xhr); }, 10000);
+    xhr.onreadystatechange = function() { callback(xhr); };
     xhr.onabort = abort;
-    xhr.open("POST", baseURL + "j_spring_security_check", true);
-    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-    xhr.send("j_username=" + username + "&j_password=" + password + "&spring-security-redirect=/status.json");
-    xhr.xhrTimeout = setTimeout("xhrAbort()", 10000);
+    if(connectionStatus == 'session expired') {
+        xhr.open("POST", baseURL + "j_spring_security_check", false);
+        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+        xhr.send("j_username=" + username + "&j_password=" + password + "&spring-security-redirect=/status.json");
+    } else {
+    try {
+        var url = baseURL + "status.json";
+        xhr.open("GET", url, false);
+        xhr.send();
+        } catch(e) {}
+    }
 }
 
-function xhrAbort() {
-    xhr.abort();
+function xhrAbort(xhr) {
+   xhr.abort();
 }
 
 function abort() {
-    var baseURL = window.localStorage.getItem('baseURL');
-    alert("It seems like we are not able to connected to \n\n" + baseURL);
+   connectionStatus = undefined;
 }
 
-function loginSuccess() {
-    var baseURL = window.localStorage.getItem('baseURL');
+function loginSuccess(xhr) {
     if (xhr.readyState == 4 && xhr.status == 200) {
+       if(xhr.xhrTimeout !== undefined) {
         clearTimeout(xhr.xhrTimeout);
+       }
         var response = JSON.parse(xhr.responseText);
-        if (response.status == 'Success') {
-            afterLoginSuccess();
-        } else if (response.status == 'session expired') {
-            alert("Wrong username/password!!! Make sure you are able to login to Mifos using " + baseURL + "login.ftl");
+        if (response.status !== undefined) {
+            connectionStatus = response.status;
         } else {
             alert(response.status);
         }
@@ -86,26 +143,26 @@ function afterLoginSuccess() {
 }
 
 function getPersonnelInfo() {
-    xhr = new XMLHttpRequest();
+    var xhr = new XMLHttpRequest();
     xhr.onreadystatechange = function () {
         if (xhr.readyState == 4 && xhr.status == 200) {
-            window.localStorage.setItem("personnel", xhr.responseText);
+            setItem("personnel", xhr.responseText);
             personnel = JSON.parse(xhr.responseText);
             getCenterList();
         }
     };
 
-    var baseURL = window.localStorage.getItem('baseURL');
+    var baseURL = getItem('baseURL');
     xhr.open("GET", baseURL + "personnel/id-current.json", false);
     xhr.send();
 }
 
 function getCenterList() {
-    xhr = new XMLHttpRequest();
+    var xhr = new XMLHttpRequest();
     xhr.onreadystatechange = function () {
         if (xhr.readyState == 4 && xhr.status == 200) {
             centerList = JSON.parse(xhr.responseText).centers;
-            window.localStorage.setItem("centerList", JSON.stringify(centerList));
+            setItem("centerList", JSON.stringify(centerList));
             for (var i = 0; i < centerList.length; i++) {
                 getAndStoreCollectionSheet(centerList[i].id);
             }
@@ -113,30 +170,37 @@ function getCenterList() {
         }
     };
 
-    var baseURL = window.localStorage.getItem('baseURL');
+    var baseURL = getItem('baseURL');
     xhr.open("GET", baseURL + "personnel/clients/id-current.json", false);
     xhr.send();
 }
 
 function createBranchList() {
-    centerList = JSON.parse(window.localStorage.getItem("centerList"));
+    centerList = JSON.parse(getItem("centerList"));
     var htmlStr = "<b>Branches -></b>";
     for (var i = 0; i < centerList.length; i++) {
         htmlStr += "<input type=button value='" + centerList[i].displayName + "' onclick='showCollectionSheetHandler(" + centerList[i].id + ")'></input>";
+    }
+    if(debug == true) {
+        htmlStr += "<input type=button onclick='reset()' value='Reset' />"
+                 + "<input type=button onclick='listAllItems()' value='Show Local Storage' />"  
+                 + "<input type=button onclick='showSaveCollectionsheet()' value='Show JSON' />" 
+                 + "<input type=button onclick='clearShowSaveCollectionsheet()' value='Clear JSON' />" 
+                 + "<div id='saveJSON'></div>" 
     }
     $("#centerList").html(htmlStr);
     placeHolder.html('');
 }
 
 function getAndStoreCollectionSheet(centerId) {
-    xhr = new XMLHttpRequest();
+    var xhr = new XMLHttpRequest();
     xhr.onreadystatechange = function () {
         if (xhr.readyState == 4 && xhr.status == 200) {
-            window.localStorage.setItem("collectionData_" + centerId, xhr.responseText);
+            setItem("collectionData_" + centerId, xhr.responseText);
         }
     };
 
-    var baseURL = window.localStorage.getItem('baseURL');
+    var baseURL = getItem('baseURL');
     // localStorage is not asnc
     xhr.open("GET", baseURL + "collectionsheet/customer/id-" + centerId + ".json", false);
     xhr.send();
@@ -144,17 +208,17 @@ function getAndStoreCollectionSheet(centerId) {
 
 function showCollectionSheetHandler(centerId) {
     checkNull(centerId)
-    window.localStorage.setItem('currentCenter', centerId);
+    setItem('currentCenter', centerId);
     currentCenter = centerId;
     loadCollectionSheetUI();
 }
 
 function loadCollectionSheetUI() {
     checkNull(currentCenter)
-    collectionData = JSON.parse(window.localStorage.getItem('collectionData_' + currentCenter));
+    collectionData = JSON.parse(getItem('collectionData_' + currentCenter));
     if (collectionData == undefined) {
         getAndStoreCollectionSheet(currentCenter);
-        collectionData = JSON.parse(window.localStorage.getItem('collectionData_' + currentCenter));
+        collectionData = JSON.parse(getItem('collectionData_' + currentCenter));
         checkNull(collectionData)
     }
     date = collectionData.date[0] + "-" + collectionData.date[1] + "-" + collectionData.date[2];
@@ -174,7 +238,7 @@ function saveInput(e) {
     var id = element.attr('id');
     checkNull(id);
     var value = element.val();
-    window.localStorage.setItem(id, value);
+    setItem(id, value);
 }
 
 function checkNull(arg) {
@@ -203,7 +267,6 @@ function loadCenterGroupsAndClients() {
 
 function checkSuccess() {
     if (xhr.readyState == 4 && xhr.status == 200) {
-        clearTimeout(xhr.xhrTimeout);
         var response = JSON.parse(xhr.responseText);
         if (response.status == 'Success') {
             var saveCollectionsheet = buildSaveCollectionsheet();
@@ -217,7 +280,7 @@ function checkSuccess() {
 }
 
 function sendSaveCollectionSheetJSON(saveCollectionsheet) {
-    xhr = new XMLHttpRequest();
+    var xhr = new XMLHttpRequest();
     xhr.onreadystatechange = function () {
         if (xhr.readyState == 4 && xhr.status == 200) {
             var response = JSON.parse(xhr.responseText);
@@ -238,7 +301,7 @@ function sendSaveCollectionSheetJSON(saveCollectionsheet) {
         }
     };
 
-    var baseURL = window.localStorage.getItem('baseURL');
+    var baseURL = getItem('baseURL');
     xhr.open("POST", baseURL + "collectionsheet/save.json", false);
     xhr.setRequestHeader("Content-type", "application/json");
     var param = {};
@@ -255,12 +318,6 @@ function submitCollectionsheet() {
 
 function buildCollectionSheet() {
     var htmlStr = "";
-    
-    if(debug == true) {
-        htmlStr +=  "<input type=button onclick='showSaveCollectionsheet()' value='Show JSON' />" 
-                 + "<input type=button onclick='clearShowSaveCollectionsheet()' value='Clear JSON' />" 
-                 + "<div id='saveJSON'></div>" 
-    }
 
     htmlStr += "<input type=button onclick='submitCollectionsheet()' value='Submit Collectionsheet' />";
 
@@ -319,7 +376,7 @@ function createInputFields(customer) {
 
 function buildInputFieldsForCustomerFees(customerFee, customerId) {
     var id = "fee_" + customerFee.accountId + "_" + customerId;
-    var value = window.localStorage.getItem(id);
+    var value = getItem(id);
     if (value == null || value == undefined) {
         value = 0;
     }
@@ -336,7 +393,7 @@ function buildInputFieldsForLoans(loans, customerId) {
     var loansHTML = "";
     for (var i = 0; i < loans.length; i++) {
         var id = "repayment_" + loans[i].accountId + "_" + customerId;
-        var value = window.localStorage.getItem(id);
+        var value = getItem(id);
         if (value == null || value == undefined) {
             value = 0;
         }
@@ -354,12 +411,12 @@ function buildInputFieldsForSavings(savings, customerId) {
     var savingsHTML = "";
     for (var i = 0; i < savings.length; i++) {
         var depositId = "deposit_" + savings[i].accountId + "_" + customerId;
-        var depositValue = window.localStorage.getItem(depositId);
+        var depositValue = getItem(depositId);
         if (depositValue == null || depositValue == undefined) {
             depositValue = 0;
         }
         var withdrawalId = "withdrawal_" + savings[i].accountId + "_" + customerId;
-        var withdrawalValue = window.localStorage.getItem(withdrawalId);
+        var withdrawalValue = getItem(withdrawalId);
         if (withdrawalValue == null || withdrawalValue == undefined) {
             withdrawalValue = 0;
         }
@@ -516,4 +573,22 @@ function showSaveCollectionsheet() {
     $("#saveJSON").html(JSON.stringify(buildSaveCollectionsheet()));
 }
 //----------------------------------------------------------------------------------------
+
+function getItem(id) {
+    var val =  window.localStorage.getItem(id);
+    if(val == null) {
+        return undefined;
+    }
+   return val; 
+   
+}
+
+function setItem(id, val) {
+    if(id == undefined || val == undefined) {
+        return;
+    }
+    
+    return window.localStorage.setItem(id, val);
+}
+
 $(document).ready(init);
