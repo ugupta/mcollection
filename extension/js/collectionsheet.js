@@ -15,9 +15,10 @@ var connectionStatus;
 var prevConnectionStatus;
 var statusIntervalReference;
 var statusInterval = 1000;
-var initApp = true;
+var forceLogin = true;
 
 function reset() {
+    logoutAjax();
     window.localStorage.clear();
     window.location.reload();
 }
@@ -27,9 +28,9 @@ function init() {
     currentCenter = getItem('currentCenter');
     if (currentCenter == null) {
         placeHolder.html("Welcome to Mifos offline collectionsheet - Google Chrome Extension");
-        createBranchList();
+        createCenterList();
     } else {
-        createBranchList();
+        createCenterList();
         loadCollectionSheetUI();
     }
     statusIntervalReference = setInterval("startStatusTrack()", statusInterval);
@@ -40,10 +41,7 @@ function addDebugTools() {
      var htmlStr = "";
      if(debug == true) {
         htmlStr += "<input type=button onclick='reset()' value='Reset' />"
-                 + "<input type=button onclick='listAllItems()' value='Show Local Storage' />"  
-                 + "<input type=button onclick='showSaveCollectionsheet()' value='Show JSON' />" 
-                 + "<input type=button onclick='clearShowSaveCollectionsheet()' value='Clear JSON' />" 
-                 + "<div id='saveJSON'></div>";
+                 + "<input type=button onclick='listAllItems()' value='Show Local Storage' />";
        $("#debugTools").html(htmlStr);
     }
 }
@@ -60,6 +58,9 @@ function startStatusTrack() {
        if(personnel == null) {
            afterLoginSuccess();
        }
+       
+       htmlStr += "<input type=button onclick='submitCollectionsheet()' value='Submit Currently Displayed Collectionsheet' />";
+
     } else if(connectionStatus == 'session expired') {
        htmlStr = "Login please";
        ele.attr('class','yellowStatus');
@@ -73,7 +74,7 @@ function createLoginDialog() {
     var password = getItem('password');
     var baseURL = getItem('baseURL');
     if(username == undefined) {
-       username = "loanofficer";
+       username = "loanoffice";
        setItem('username', username);
     }
     if(password == undefined) {
@@ -87,23 +88,22 @@ function createLoginDialog() {
     var htmlStr = "";
 
     // has connection status changed
-    if(initApp || prevConnectionStatus !== connectionStatus) {
+    if(forceLogin || prevConnectionStatus !== connectionStatus) {
         prevConnectionStatus = connectionStatus
 	    if(connectionStatus == undefined) {
 		htmlStr += "<input type='text' id='url' name='url' size=40 value='"+baseURL+"'></input>\n"
 		         + "<input type='button' id='loginButton' value='Submit'></input>\n";
-	    }
-	    if(connectionStatus == 'session expired') {
+	    } else if(connectionStatus == 'session expired') {
 		htmlStr += "<input type='text' id='url' name='url' size=40 value='"+baseURL+"'></input>\n"
                  + "<input type='text' id='username' name='url' placeholder='username' value='"+username+"'></input>\n" 
 		         + "<input type='password' id='password' name='url' placeholder='password' value='"+password+"' ></input>\n"
 		         + "<input type='button' id='loginButton' value='Submit'></input>\n";
-	    }
+	    } 
 	    $("#loginDialog").html(htmlStr);
 	    $("#loginButton").click(getLoginParameters);
    }
-    if(initApp) {
-       initApp = false;
+    if(forceLogin) {
+       forceLogin = false;
     }
 }
 
@@ -115,6 +115,7 @@ function getLoginParameters() {
     setItem('username', username);
     setItem('password', password);
     setItem('baseURL', baseURL);
+    forceLogin = true;
 }
 
 function loginAjax(callback) {
@@ -138,6 +139,14 @@ function loginAjax(callback) {
     }
 }
 
+function logoutAjax() {
+    var xhr = new XMLHttpRequest();
+    var baseURL = getItem('baseURL');
+    var url = baseURL + "j_spring_security_logout";
+    xhr.open("GET", url, true);
+    xhr.send();
+}
+
 function xhrAbort(xhr) {
    xhr.abort();
 }
@@ -152,7 +161,7 @@ function loginSuccess(xhr) {
        if(xhr.xhrTimeout !== undefined) {
         clearTimeout(xhr.xhrTimeout);
        }
-        var response = JSON.parse(xhr.responseText);
+        var response = parseJSON(xhr.responseText);
         if (response.status !== undefined) {
             previousConnectionStatus = connectionStatus;
             connectionStatus = response.status;
@@ -171,7 +180,7 @@ function getPersonnelInfo() {
     xhr.onreadystatechange = function () {
         if (xhr.readyState == 4 && xhr.status == 200) {
             setItem("personnel", xhr.responseText);
-            personnel = JSON.parse(xhr.responseText);
+            personnel = parseJSON(xhr.responseText);
             getCenterList();
         }
     };
@@ -185,12 +194,12 @@ function getCenterList() {
     var xhr = new XMLHttpRequest();
     xhr.onreadystatechange = function () {
         if (xhr.readyState == 4 && xhr.status == 200) {
-            centerList = JSON.parse(xhr.responseText).centers;
+            centerList = parseJSON(xhr.responseText).centers;
             setItem("centerList", JSON.stringify(centerList));
             for (var i = 0; i < centerList.length; i++) {
                 getAndStoreCollectionSheet(centerList[i].id);
             }
-            createBranchList();
+            createCenterList();
         }
     };
 
@@ -199,7 +208,7 @@ function getCenterList() {
     xhr.send();
 }
 
-function createBranchList() {
+function createCenterList() {
     var centerListData = getItem("centerList");
     if(centerListData == undefined) {
       if(connectionStatus == "Success") {
@@ -207,13 +216,15 @@ function createBranchList() {
       }
         return;
     }
-    centerList = JSON.parse(centerListData);
-    var htmlStr = "<b>Branches -></b>";
+    centerList = parseJSON(centerListData);
+    var htmlStr = "<b>Centers :</b>";
     for (var i = 0; i < centerList.length; i++) {
         htmlStr += "<input type=button value='" + centerList[i].displayName + "' onclick='showCollectionSheetHandler(" + centerList[i].id + ")'></input>";
     }
+    if(centerList.length == 0) {
+         htmlStr = "No centers found, make sure you are logged in as a loan officer.";
+    }
     $("#centerList").html(htmlStr);
-    placeHolder.html('');
 }
 
 function getAndStoreCollectionSheet(centerId) {
@@ -239,10 +250,10 @@ function showCollectionSheetHandler(centerId) {
 
 function loadCollectionSheetUI() {
     checkNull(currentCenter)
-    collectionData = JSON.parse(getItem('collectionData_' + currentCenter));
+    collectionData = parseJSON(getItem('collectionData_' + currentCenter));
     if (collectionData == undefined) {
         getAndStoreCollectionSheet(currentCenter);
-        collectionData = JSON.parse(getItem('collectionData_' + currentCenter));
+        collectionData = parseJSON(getItem('collectionData_' + currentCenter));
         checkNull(collectionData)
     }
     date = collectionData.date[0] + "-" + collectionData.date[1] + "-" + collectionData.date[2];
@@ -262,7 +273,7 @@ function saveInput(e) {
     var id = element.attr('id');
     checkNull(id);
     var value = element.val();
-    setItem(id, value);
+    setItem("inputField_"+currentCenter+"_" + id, value);
 }
 
 function checkNull(arg) {
@@ -289,9 +300,9 @@ function loadCenterGroupsAndClients() {
 
 //-------------------------------------------------
 
-function checkSuccess() {
+function checkSuccess(xhr) {
     if (xhr.readyState == 4 && xhr.status == 200) {
-        var response = JSON.parse(xhr.responseText);
+        var response = parseJSON(xhr.responseText);
         if (response.status == 'Success') {
             var saveCollectionsheet = buildSaveCollectionsheet();
             sendSaveCollectionSheetJSON(saveCollectionsheet);
@@ -307,7 +318,7 @@ function sendSaveCollectionSheetJSON(saveCollectionsheet) {
     var xhr = new XMLHttpRequest();
     xhr.onreadystatechange = function () {
         if (xhr.readyState == 4 && xhr.status == 200) {
-            var response = JSON.parse(xhr.responseText);
+            var response = parseJSON(xhr.responseText);
             if (response.invalidCollectionSheet.length > 0) {
                 var reasons = "";
                 for (var i = 0; i < response.invalidCollectionSheet.length; i++) {
@@ -319,6 +330,7 @@ function sendSaveCollectionSheetJSON(saveCollectionsheet) {
             } else {
                 alert("Submitted successfully");
                 window.localStorage.removeItem('collectionData_' + currentCenter);
+                removeSavedInputFields()
                 placeHolder.html('');
                 loadCollectionSheetUI();
             }
@@ -333,6 +345,15 @@ function sendSaveCollectionSheetJSON(saveCollectionsheet) {
     xhr.send(JSON.stringify(param));
 }
 
+function removeSavedInputFields() {
+    for (i = 0; i < localStorage.length; i++) {
+        key = localStorage.key(i);
+        if (key.match("inputField_"+currentCenter+"_.*")) {
+            localStorage.removeItem(key);
+        }
+    }
+}
+
 function submitCollectionsheet() {
     loginAjax(checkSuccess)
 }
@@ -343,9 +364,16 @@ function submitCollectionsheet() {
 function buildCollectionSheet() {
     var htmlStr = "";
 
-    htmlStr += "<input type=button onclick='submitCollectionsheet()' value='Submit Collectionsheet' />";
-
-    htmlStr += "<div>Collectionsheet - " + center.name + " - " + date + "</div>\n";
+    if(debug == true) {
+     htmlStr += "<input type=button id='showJSON' onclick='showSaveCollectionsheet()' value='Show Save Collectionsheet JSON' />"
+     + "<div id='saveJSON'></div>";
+   }
+    personnel = parseJSON(getItem('personnel'));
+    htmlStr += "<div id='heading'>\n"
+                 + "<div>Collectionsheet : " + center.name + " </div>\n"
+                 + "<div> Date : " + date + "</div>\n"
+                 + "<div>Loan Officer : " + personnel.displayName + " </div>\n"
+             + "</div>";
 
     htmlStr += "<div id='collectionsheetForm'>\n"
        + "<div id='clients'></div>\n"
@@ -400,13 +428,13 @@ function createInputFields(customer) {
 
 function buildInputFieldsForCustomerFees(customerFee, customerId) {
     var id = "fee_" + customerFee.accountId + "_" + customerId;
-    var value = getItem(id);
+    var value = getItem("inputField_"+currentCenter+"_"+id);
     if (value == null || value == undefined) {
         value = 0;
     }
     var loansHTML = "<hr /><div class='account'>\n" 
                             + "<span> Fee : " + customerFee.accountId + "</span>\n" 
-                            + "<span>Total Collection</span>\n" 
+                            + "<span>Collection</span>\n" 
                             + "<input id='" + id + "' type='text' value='" + value + "' />\n" 
                             + "<span class='due'>(Due : " + customerFee.totalCustomerAccountCollectionFee + ")</span>\n" 
                         + "</div>\n";
@@ -417,13 +445,13 @@ function buildInputFieldsForLoans(loans, customerId) {
     var loansHTML = "";
     for (var i = 0; i < loans.length; i++) {
         var id = "repayment_" + loans[i].accountId + "_" + customerId;
-        var value = getItem(id);
+        var value = getItem("inputField_"+currentCenter+"_"+id);
         if (value == null || value == undefined) {
             value = 0;
         }
         loansHTML += "<hr />\n<div class='account'>\n" 
                             + "<span> Loan " + loans[i].productShortName + " : " + loans[i].accountId + "</span>\n" 
-                            + "<span>Total Repayment Due</span>\n" 
+                            + "<span>Repayment</span>\n" 
                             + "<input id='" + id + "' type='text' value='" + value + "' />\n" 
                             + "<span class='due'>(Due : " + loans[i].totalRepaymentDue + ")</span>\n" 
                          + "</div>\n";
@@ -435,12 +463,12 @@ function buildInputFieldsForSavings(savings, customerId) {
     var savingsHTML = "";
     for (var i = 0; i < savings.length; i++) {
         var depositId = "deposit_" + savings[i].accountId + "_" + customerId;
-        var depositValue = getItem(depositId);
+        var depositValue = getItem("inputField_"+currentCenter+"_"+depositId);
         if (depositValue == null || depositValue == undefined) {
             depositValue = 0;
         }
         var withdrawalId = "withdrawal_" + savings[i].accountId + "_" + customerId;
-        var withdrawalValue = getItem(withdrawalId);
+        var withdrawalValue = getItem("inputField_"+currentCenter+"_"+withdrawalId);
         if (withdrawalValue == null || withdrawalValue == undefined) {
             withdrawalValue = 0;
         }
@@ -455,7 +483,7 @@ function buildInputFieldsForSavings(savings, customerId) {
 }
 
 function buildTotalDataCollection() {
-    $("#total").html("<div>total</div>\n");
+    $("#total").html("\n");
 }
 
 // ------------------------------------------------------------------------------------
@@ -591,10 +619,15 @@ function expand(e) {
 
 function clearShowSaveCollectionsheet() {
     $("#saveJSON").html("");
+    $("#showJSON").click(showSaveCollectionsheet);
+    $("#showJSON").val('Show Save Collectionsheet JSON');
 }
 
 function showSaveCollectionsheet() {
     $("#saveJSON").html(JSON.stringify(buildSaveCollectionsheet()));
+    $("#showJSON").attr('onclick', '');
+    $("#showJSON").click(clearShowSaveCollectionsheet);
+    $("#showJSON").val('Okay, Now Hide JSON')
 }
 //----------------------------------------------------------------------------------------
 
@@ -611,8 +644,14 @@ function setItem(id, val) {
     if(id == undefined || val == undefined) {
         return;
     }
-    
     return window.localStorage.setItem(id, val);
+}
+
+function parseJSON(txt) {
+    if(txt == null || txt == undefined) {
+       return undefined;
+    }
+    return JSON.parse(txt)
 }
 
 $(document).ready(init);
