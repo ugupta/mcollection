@@ -12,8 +12,10 @@ var GROUP_LEVEL = 2;
 var CLIENT_LEVEL = 1;
 var debug = true;
 var connectionStatus;
+var prevConnectionStatus;
 var statusIntervalReference;
 var statusInterval = 1000;
+var initApp = true;
 
 function reset() {
     window.localStorage.clear();
@@ -30,8 +32,20 @@ function init() {
         createBranchList();
         loadCollectionSheetUI();
     }
-    
     statusIntervalReference = setInterval("startStatusTrack()", statusInterval);
+    addDebugTools();
+}
+
+function addDebugTools() {
+     var htmlStr = "";
+     if(debug == true) {
+        htmlStr += "<input type=button onclick='reset()' value='Reset' />"
+                 + "<input type=button onclick='listAllItems()' value='Show Local Storage' />"  
+                 + "<input type=button onclick='showSaveCollectionsheet()' value='Show JSON' />" 
+                 + "<input type=button onclick='clearShowSaveCollectionsheet()' value='Clear JSON' />" 
+                 + "<div id='saveJSON'></div>";
+       $("#debugTools").html(htmlStr);
+    }
 }
 
 function startStatusTrack() {
@@ -71,18 +85,26 @@ function createLoginDialog() {
         setItem('baseURL', baseURL);
     }
     var htmlStr = "";
-    if(connectionStatus == undefined) {
-        htmlStr += "<input type='text' id='url' name='url' size=40 value='"+baseURL+"'></input>\n"
-                 + "<input type='button' id='loginButton' value='Submit'></input>\n";
+
+    // has connection status changed
+    if(initApp || prevConnectionStatus !== connectionStatus) {
+        prevConnectionStatus = connectionStatus
+	    if(connectionStatus == undefined) {
+		htmlStr += "<input type='text' id='url' name='url' size=40 value='"+baseURL+"'></input>\n"
+		         + "<input type='button' id='loginButton' value='Submit'></input>\n";
+	    }
+	    if(connectionStatus == 'session expired') {
+		htmlStr += "<input type='text' id='url' name='url' size=40 value='"+baseURL+"'></input>\n"
+                 + "<input type='text' id='username' name='url' placeholder='username' value='"+username+"'></input>\n" 
+		         + "<input type='password' id='password' name='url' placeholder='password' value='"+password+"' ></input>\n"
+		         + "<input type='button' id='loginButton' value='Submit'></input>\n";
+	    }
+	    $("#loginDialog").html(htmlStr);
+	    $("#loginButton").click(getLoginParameters);
+   }
+    if(initApp) {
+       initApp = false;
     }
-    if(connectionStatus == 'session expired') {
-        htmlStr += "<input type='text' id='username' name='url' placeholder='username' value='"+username+"'></input>\n" 
-                 + "<input type='password' id='password' name='url' placeholder='password' value='"+password+"' ></input>\n"
-                 + "<input type='button' id='loginButton' value='Submit'></input>\n";
-    }
-        
-    $("#loginDialog").html(htmlStr);
-    $("#loginButton").click(getLoginParameters);
 }
 
 function getLoginParameters() {
@@ -110,7 +132,7 @@ function loginAjax(callback) {
     } else {
     try {
         var url = baseURL + "status.json";
-        xhr.open("GET", url, false);
+        xhr.open("GET", url, true);
         xhr.send();
         } catch(e) {}
     }
@@ -121,6 +143,7 @@ function xhrAbort(xhr) {
 }
 
 function abort() {
+   previousConnectionStatus = connectionStatus;
    connectionStatus = undefined;
 }
 
@@ -131,6 +154,7 @@ function loginSuccess(xhr) {
        }
         var response = JSON.parse(xhr.responseText);
         if (response.status !== undefined) {
+            previousConnectionStatus = connectionStatus;
             connectionStatus = response.status;
         } else {
             alert(response.status);
@@ -176,17 +200,17 @@ function getCenterList() {
 }
 
 function createBranchList() {
-    centerList = JSON.parse(getItem("centerList"));
+    var centerListData = getItem("centerList");
+    if(centerListData == undefined) {
+      if(connectionStatus == "Success") {
+        afterLoginSuccess();
+      }
+        return;
+    }
+    centerList = JSON.parse(centerListData);
     var htmlStr = "<b>Branches -></b>";
     for (var i = 0; i < centerList.length; i++) {
         htmlStr += "<input type=button value='" + centerList[i].displayName + "' onclick='showCollectionSheetHandler(" + centerList[i].id + ")'></input>";
-    }
-    if(debug == true) {
-        htmlStr += "<input type=button onclick='reset()' value='Reset' />"
-                 + "<input type=button onclick='listAllItems()' value='Show Local Storage' />"  
-                 + "<input type=button onclick='showSaveCollectionsheet()' value='Show JSON' />" 
-                 + "<input type=button onclick='clearShowSaveCollectionsheet()' value='Clear JSON' />" 
-                 + "<div id='saveJSON'></div>" 
     }
     $("#centerList").html(htmlStr);
     placeHolder.html('');
