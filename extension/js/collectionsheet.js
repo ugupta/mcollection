@@ -444,17 +444,23 @@ function buildInputFieldsForCustomerFees(customerFee, customerId) {
 function buildInputFieldsForLoans(loans, customerId) {
     var loansHTML = "";
     for (var i = 0; i < loans.length; i++) {
-        var id = "repayment_" + loans[i].accountId + "_" + customerId;
+        var id = "loan_" + loans[i].accountId + "_" + customerId;
         var value = getItem("inputField_"+currentCenter+"_"+id);
         if (value == null || value == undefined) {
             value = 0;
         }
         loansHTML += "<hr />\n<div class='account'>\n" 
                             + "<span> Loan " + loans[i].productShortName + " : " + loans[i].accountId + "</span>\n" 
-                            + "<span>Repayment</span>\n" 
-                            + "<input id='" + id + "' type='text' value='" + value + "' />\n" 
-                            + "<span class='due'>(Due : " + loans[i].totalRepaymentDue + ")</span>\n" 
-                         + "</div>\n";
+                     if(loans[i].totalDisbursement == 0) {
+                           loansHTML += "<span>Repayment</span>\n" 
+                            	     + "<input id='" + id + "' type='text' value='" + value + "' />\n" 
+                                     + "<span class='due'>(Due : " + loans[i].totalRepaymentDue + ")</span>\n"
+                      } else {
+                           loansHTML += "<span>Disbursement</span>\n" 
+                                     + "<input id='" + id + "' type='text' value='" + value + "' />\n" 
+                                     + "<span class='due'>(Default : " + loans[i].totalDisbursement + ")</span>\n"
+                      }
+         loansHTML += "</div>\n";
     }
     return loansHTML;
 }
@@ -561,7 +567,7 @@ function createLoans(loans) {
         cloan.currencyId = account.currencyId;
         cloan.totalDisbursement = account.totalDisbursement;
         checkNull(cloan.totalDisbursement);
-        cloan.totalLoanPayment = $("#repayment_" + account.accountId + "_" + account.customerId).val();
+        cloan.totalLoanPayment = $("#loan_" + account.accountId + "_" + account.customerId).val();
         checkNull(cloan.totalLoanPayment);
         loanArray.push(cloan)
     }

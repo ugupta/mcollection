@@ -37,14 +37,11 @@ div.account {
 
 .account span,
 .account input {
-	background: transparent;
 	display: inline-block;
-	color: black;
 	padding-left: 10px;
 	padding-right: 10px;
-	margin-left: 5px;
 	border-left: 1px solid;
-	min-width: 100px;
+	min-width: 105px;
 }
 
 .account input {
