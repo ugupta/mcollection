@@ -496,8 +496,9 @@ function buildInputFieldsForSavings(savings, customerId) {
                                 + "<span> Savings " + savings[i].productShortName + " : " + savings[i].accountId + "</span>\n" 
                                 + "<span>Deposit</span><input id='" + depositId + "' type='text' class='mask-pnum' value='" + depositValue + "' />\n" 
                                 + "<span class='due'>(Due : <span id='"+depositId+"_recommended'>" + savings[i].depositDue + "</span>)</span>\n" 
-                                + "<span>Withdrawal</span>\n" + "<input id='" + withdrawalId 
-                                + "' type='text' class='mask-pnum' value='" + withdrawalValue + "'/>\n" 
+                                + "<div><span>-</span>"
+                                +"<span>Withdrawal</span>\n" + "<input id='" + withdrawalId 
+                                + "' type='text' class='mask-pnum' value='" + withdrawalValue + "'/></div>\n" 
                             + "</div>\n";
     }
     return savingsHTML;
