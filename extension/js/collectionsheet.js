@@ -111,7 +111,7 @@ function getLoginParameters() {
     var username = $("#username").val();
     var password = $("#password").val();
     var baseURL = $("#url").val();
-    $("#loginDialog").html("<img src='loader.gif' />");
+    $("#loginDialog").html("<img src='images/loader.gif' />");
     setItem('username', username);
     setItem('password', password);
     setItem('baseURL', baseURL);
@@ -259,13 +259,6 @@ function loadCollectionSheetUI() {
     date = collectionData.date[0] + "-" + collectionData.date[1] + "-" + collectionData.date[2];
     loadCenterGroupsAndClients();
     buildCollectionSheet();
-    addChangeInputListener();
-}
-
-function addChangeInputListener() {
-    var form = $("#collectionsheetForm");
-    var inputElements = form.find("input");
-    inputElements.change(saveInput);
 }
 
 function saveInput(e) {
@@ -366,7 +359,8 @@ function buildCollectionSheet() {
 
     if(debug == true) {
      htmlStr += "<input type=button id='showJSON' onclick='showSaveCollectionsheet()' value='Show Save Collectionsheet JSON' />"
-     + "<div id='saveJSON'></div>";
+             + "<div id='saveJSON'></div>"
+             + "<input type=button id='fillDefaultPayments' onclick='fillDefaultPayments()' value='Fill default payments'>";
    }
     personnel = parseJSON(getItem('personnel'));
     htmlStr += "<div id='heading'>\n"
@@ -386,6 +380,23 @@ function buildCollectionSheet() {
     buildGroupsDataCollection();
     buildCenterDataCollection();
     buildTotalDataCollection();
+    addInputKeyFilter();
+    addChangeInputListener();
+}
+
+
+function addChangeInputListener() {
+    var form = $("#collectionsheetForm");
+    var inputElements = form.find("input");
+    inputElements.change(saveInput);
+}
+
+function addInputKeyFilter() {
+	var tags = $('input[class*=mask-pnum]');
+	for (var key in $.fn.keyfilter.defaults.masks)
+	{
+		tags.filter('.mask-' + key).keyfilter($.fn.keyfilter.defaults.masks[key]);
+	}
 }
 
 function buildCenterDataCollection() {
@@ -435,8 +446,9 @@ function buildInputFieldsForCustomerFees(customerFee, customerId) {
     var loansHTML = "<hr /><div class='account'>\n" 
                             + "<span> Fee : " + customerFee.accountId + "</span>\n" 
                             + "<span>Collection</span>\n" 
-                            + "<input id='" + id + "' type='text' value='" + value + "' />\n" 
-                            + "<span class='due'>(Due : " + customerFee.totalCustomerAccountCollectionFee + ")</span>\n" 
+                            + "<input id='" + id + "' type='text' class='mask-pnum' value='" + value + "' />\n" 
+                            + "<span class='due'>(Due : <span id='"+id+"_recommended'>" 
+                            + customerFee.totalCustomerAccountCollectionFee + "</span>)</span>\n" 
                         + "</div>\n";
     return loansHTML;
 }
@@ -453,12 +465,14 @@ function buildInputFieldsForLoans(loans, customerId) {
                             + "<span> Loan " + loans[i].productShortName + " : " + loans[i].accountId + "</span>\n" 
                      if(loans[i].totalDisbursement == 0) {
                            loansHTML += "<span>Repayment</span>\n" 
-                            	     + "<input id='" + id + "' type='text' value='" + value + "' />\n" 
-                                     + "<span class='due'>(Due : " + loans[i].totalRepaymentDue + ")</span>\n"
+                            	     + "<input id='" + id + "' type='text' class='mask-pnum' value='" + value + "' />\n" 
+                                     + "<span class='due'>(Due : <span id='"+id+"_recommended'>" 
+                                     + loans[i].totalRepaymentDue + "</span>)</span>\n"
                       } else {
                            loansHTML += "<span>Disbursement</span>\n" 
-                                     + "<input id='" + id + "' type='text' value='" + value + "' />\n" 
-                                     + "<span class='due'>(Default : " + loans[i].totalDisbursement + ")</span>\n"
+                                     + "<input id='" + id + "' type='text' class='mask-pnum' class='mask-pnum' value='" + value + "' />\n" 
+                                     + "<span class='due'>(Default : <span id='"+id+"_recommended'>" 
+                                     + loans[i].totalDisbursement + "</span>)</span>\n"
                       }
          loansHTML += "</div>\n";
     }
@@ -480,9 +494,10 @@ function buildInputFieldsForSavings(savings, customerId) {
         }
         savingsHTML += "<hr />\n<div class='account'>\n" 
                                 + "<span> Savings " + savings[i].productShortName + " : " + savings[i].accountId + "</span>\n" 
-                                + "<span>Deposit</span><input id='" + depositId + "' type='text' value='" + depositValue + "' />\n" 
-                                + "<span class='due'>(Due : " + savings[i].depositDue + ")</span>\n" 
-                                + "<span>Withdrawal</span>\n" + "<input id='" + withdrawalId + "' type='text' value='" + withdrawalValue + "'/>\n" 
+                                + "<span>Deposit</span><input id='" + depositId + "' type='text' class='mask-pnum' value='" + depositValue + "' />\n" 
+                                + "<span class='due'>(Due : <span id='"+depositId+"_recommended'>" + savings[i].depositDue + "</span>)</span>\n" 
+                                + "<span>Withdrawal</span>\n" + "<input id='" + withdrawalId 
+                                + "' type='text' class='mask-pnum' value='" + withdrawalValue + "'/>\n" 
                             + "</div>\n";
     }
     return savingsHTML;
@@ -635,6 +650,22 @@ function showSaveCollectionsheet() {
     $("#showJSON").click(clearShowSaveCollectionsheet);
     $("#showJSON").val('Okay, Now Hide JSON')
 }
+
+function fillDefaultPayments() {
+    var inputElements = $('input.mask-pnum');
+    for(var i = 0; i < inputElements.length; i++) {
+       var ele = $(inputElements[i]);
+       var id = ele.attr('id');
+       var recommendedAmountHolder = $("#"+id+"_recommended");
+       var recommendedAmount = 0;
+       if(recommendedAmountHolder !== undefined && recommendedAmountHolder !== null) {
+          recommendedAmount = recommendedAmountHolder.html();
+       }
+       ele.val(recommendedAmount);
+       ele.trigger('change');
+    }
+}
+
 //----------------------------------------------------------------------------------------
 
 function getItem(id) {
@@ -642,8 +673,7 @@ function getItem(id) {
     if(val == null) {
         return undefined;
     }
-   return val; 
-   
+   return val;
 }
 
 function setItem(id, val) {
