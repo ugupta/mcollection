@@ -312,6 +312,10 @@ function sendSaveCollectionSheetJSON(saveCollectionsheet) {
     xhr.onreadystatechange = function () {
         if (xhr.readyState == 4 && xhr.status == 200) {
             var response = parseJSON(xhr.responseText);
+            if(response.invalidCollectionSheet == undefined) {
+                 alert(response);
+                 return;
+            }
             if (response.invalidCollectionSheet.length > 0) {
                 var reasons = "";
                 for (var i = 0; i < response.invalidCollectionSheet.length; i++) {
@@ -661,6 +665,9 @@ function fillDefaultPayments() {
        var recommendedAmount = 0;
        if(recommendedAmountHolder !== undefined && recommendedAmountHolder !== null) {
           recommendedAmount = recommendedAmountHolder.html();
+          if(recommendedAmount == null) {
+             recommendedAmount = 0;
+          }
        }
        ele.val(recommendedAmount);
        ele.trigger('change');
