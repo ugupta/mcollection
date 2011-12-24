@@ -204,7 +204,7 @@ function getCenterList() {
     };
 
     var baseURL = getItem('baseURL');
-    xhr.open("GET", baseURL + "personnel/clients/id-current.json", false);
+    xhr.open("GET", baseURL + "personnel/id-current/clients.json", false);
     xhr.send();
 }
 
@@ -343,10 +343,10 @@ function sendSaveCollectionSheetJSON(saveCollectionsheet) {
 }
 
 function removeSavedInputFields() {
-    for (i = 0; i < localStorage.length; i++) {
-        key = localStorage.key(i);
+    for (var i = 0; i < localStorage.length; i++) {
+        var key = localStorage.key(i);
         if (key.match("inputField_"+currentCenter+"_.*")) {
-            localStorage.removeItem(key);
+             setItem(key, '0');
         }
     }
 }
@@ -498,12 +498,14 @@ function buildInputFieldsForSavings(savings, customerId) {
         }
         savingsHTML += "<hr />\n<div class='account'>\n" 
                                 + "<span> Savings " + savings[i].productShortName + " : " + savings[i].accountId + "</span>\n" 
-                                + "<span>Deposit</span><input id='" + depositId + "' type='text' class='mask-pnum' value='" + depositValue + "' />\n" 
+                                + "<span>Deposit</span> <input id='" + depositId + "' type='text' class='mask-pnum' value='" + depositValue + "' />\n" 
                                 + "<span class='due'>(Due : <span id='"+depositId+"_recommended'>" + savings[i].depositDue + "</span>)</span>\n" 
-                                + "<div><span>-</span>"
-                                +"<span>Withdrawal</span>\n" + "<input id='" + withdrawalId 
+                                + "</div><div class='account'>\n"
+                                + "<span>-</span>\n"
+                                + "<span>Withdrawal</span>\n" 
+                                + "<input id='" + withdrawalId 
                                 + "' type='text' class='mask-pnum' value='" + withdrawalValue + "'/></div>\n" 
-                            + "</div>\n";
+                            + "\n";
     }
     return savingsHTML;
 }
