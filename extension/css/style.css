@@ -1,19 +1,13 @@
 body {
     font-family: arial;
-    font-size: 12px;
-}
-
-#collectionsheetForm {
-   margin: auto;
-   width: 500px;
 }
 
 #clients,
 #groups,
 #center {
-    background: #F4F3FF;
-    padding: 5px;
     border: solid 1px;
+    padding: 0px 30px;
+    color: white;
 }
 
 .section span {
@@ -22,26 +16,31 @@ body {
 }
 
 div.section {
+    background: #58B4DF;
     border: solid 1px;
-    margin: 5px;
-    padding: 5px;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 10px 10px grey;
 }
 
 .section div {
-    background: #E1E6E7;
+    padding: 1px;
+    background: white;
+    color: black;
 }
 
 div.account {
-	margin-left: 20px;
+    display: none;
+    font-size: 13px;
 }
 
 .account span,
 .account input {
-	display: inline-block;
-	padding-left: 10px;
-	padding-right: 10px;
-	border-left: 1px solid;
-	min-width: 105px;
+    display: inline-block;
+    padding-left: 10px;
+    padding-right: 10px;
+    border-left: 1px solid;
+    min-width: 185px;
 }
 
 .account input {
@@ -53,22 +52,31 @@ div.account {
 
 hr {
    margin : 1px;
+   display: none;
 }
 
 #errors {
-    color: red;
-    
+    color: red; 
+}
+
+.expand {
+    background: black;
+    color: white;
+    width: 20px;
+    height: 20px;
+    font-weight: bolder;
+    margin-right: 10px;
 }
 
 .localStorage span {
     background: green;
     border: 1px solid #000000;
-	white-space: nowrap;
-	width: 300px;
-	display: inline-block;
-	padding: 2px;
-	overflow: hidden;
-	text-overflow: ellipsis;
+    white-space: nowrap;
+    width: 300px;
+    display: inline-block;
+    padding: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .localStorage span.val {
@@ -77,8 +85,8 @@ hr {
 }
 
 span.smallText {
-	white-space: inherit;
-	width: 100%;
+    white-space: inherit;
+    width: 100%;
 }
 
 span.due {
@@ -91,9 +99,9 @@ span.due {
 }
 
 span.due span {
-	min-width: 0px;
-	border: 0px;
-	padding: 0px;
+    min-width: 0px;
+    border: 0px;
+    padding: 0px;
 }
 
 div.redStatus,
@@ -109,7 +117,7 @@ div.greenStatus {
 }
 
 div.yellowStatus {
-    background: lightblue;
+    background: lightBlue;
 }
 
 div.greenStatus {
@@ -121,7 +129,7 @@ div#login {
 }
 
 div#loginDialog {
-    background: lightblue;
+    background: lightBlue;
     position: absolute;
     right: 0px;
     top: 21px;

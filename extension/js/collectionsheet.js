@@ -386,8 +386,26 @@ function buildCollectionSheet() {
     buildTotalDataCollection();
     addInputKeyFilter();
     addChangeInputListener();
+    addExpandButtonListener();
 }
 
+function addExpandButtonListener() {
+    var buttons = $(".expand");
+     buttons.click(expandButtonHandler)
+}
+
+function expandButtonHandler(e) {
+    var element = $(e.target);
+    var parentDiv = element.parent(); 
+    parentDiv.find('.account').toggle('clip');
+    parentDiv.find('hr').toggle('clip');
+
+    if(element.val() == '+') {
+        element.val('-');
+     } else {   
+        element.val('+');
+     }
+}
 
 function addChangeInputListener() {
     var form = $("#collectionsheetForm");
@@ -405,7 +423,8 @@ function addInputKeyFilter() {
 
 function buildCenterDataCollection() {
     $("#center").html("<div id='center_" + center.customerId + "' class='section'>"
-                         +"<span>" + center.name + " : " + center.customerId + "</span>" 
+                         +" <input type='button' class='expand' value='+'>"
+                         +"<span>" + center.name + " : " + center.customerId + "</span>"
                          + createInputFields(center) 
                      + "\n</div>\n");
 }
@@ -414,8 +433,9 @@ function buildGroupsDataCollection() {
     var groupsHTML = "";
     for (var i = 0; i < groups.length; i++) {
         groupsHTML += "<div id='group_" + groups[i].customerId + "' class='section'>\n"
-                             +"<span>" + groups[i].name + " : " + groups[i].customerId + "</span>" 
-                             + createInputFields(groups[i]) 
+                         +" <input type='button' class='expand' value='+'>"
+                         +"<span>" + groups[i].name + " : " + groups[i].customerId + "</span>"
+                         + createInputFields(groups[i]) 
                      + "\n</div>\n";
     }
     $("#groups").html(groupsHTML);
@@ -425,6 +445,7 @@ function buildClientsDataCollection() {
     var clientsHTML = "";
     for (var i = 0; i < clients.length; i++) {
         clientsHTML += "<div id='client_" + clients[i].customerId + "' class='section'>\n"
+                         +" <input type='button' class='expand' value='+'>"
                          + "<span>" + clients[i].name + " : " + clients[i].customerId + "</span>" 
                          + createInputFields(clients[i]) 
                      + "</div>\n";
